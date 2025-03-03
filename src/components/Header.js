@@ -18,23 +18,11 @@ const Header = () => {
         fontSize: '13px',
         fontFamily: 'Verdana, Geneva, sans-serif'
       }}>
-        <Link 
-          to="/" 
-          style={{ 
-            color: '#000000',
-            textDecoration: 'none'
-          }}
-        >
+        <Link to="/" style={{ color: '#000000', textDecoration: 'none' }}>
           reading(currently)
         </Link>
         <span style={{ color: '#000000' }}>|</span>
-        <Link 
-          to="/wayback-machine" 
-          style={{ 
-            color: '#000000',
-            textDecoration: 'none'
-          }}
-        >
+        <Link to="/wayback-machine" style={{ color: '#000000', textDecoration: 'none' }}>
           wayback-machine
         </Link>
       </nav>

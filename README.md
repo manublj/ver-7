@@ -41,17 +41,16 @@ The backend consists of a single Google Spreadsheet divided into four sheets:
 
    - Fields:
      - CATEGORY (THEORY / REPORTING) *(dropdown)*
+     - SOURCE_TYPE *(post, article, book, pdf)* *(dropdown)*
      - HEADLINE (Title)
      - REGION *(dropdown)*
-     - SRC-TYPE *(post, article, book, pdf)* *(dropdown)*
-     - POST (Platform) *(if SRC-TYPE = post)*
-     - DOMAIN (Website source) *(if SRC-TYPE = article)*
-     - HIGHLIGHTS (Excerpted text from the article)
+     - SPECTRUM (Bias classification) *(dropdown)*
      - URL (Link to full article)
+     - AUTHOR
      - WHO (Entity mentioned) *(dropdown)*
      - WHO_TYPE (Entity type) *(dropdown)*
-     - SPECTRUM (Bias classification) *(dropdown)*
      - DATE_PUBLISHED
+     - PLATFORM (if SRC-TYPE = post)
 
 3. **WHO (Entity Information)**
 
@@ -94,6 +93,32 @@ The backend consists of a single Google Spreadsheet divided into four sheets:
   - Displays entity-based cards consolidating related articles.
   - Provides full table views of all sheets for reference.
   - Filter entities by Character, Political Party, or Movement.
+
+## Changes to Dynamic Form Structure and Schema for Google Sheets
+
+### Changes to Dynamic Form Structure
+- **Field Order for Reporting Category**: 
+  - The `HEADLINES` field is now the 3rd field in the reporting category.
+  - The `REGION` field is the 4th field.
+  - The `SPECTRUM` field is the 5th field.
+  - The `URL` field is the 6th field, positioned before the `WHO` field.
+  - Added an `AUTHOR` field after the `URL` field.
+  - Added a `PLATFORM` field after the `SOURCE_TYPE` when the source type is 'social media post'.
+
+### Changes to Schema for Google Sheets
+- The schema for the Google Sheets has been updated to reflect the new field names and order:
+  - `CATEGORY`
+  - `SOURCE_TYPE`
+  - `HEADLINES`
+  - `REGION`
+  - `SPECTRUM`
+  - `URL`
+  - `AUTHOR`
+  - `WHO`
+  - `WHO_TYPE`
+  - `DATE_PUBLISHED`
+
+Ensure that the data submitted through the form aligns with this updated schema.
 
 ## Getting Started
 

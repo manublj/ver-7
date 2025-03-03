@@ -1,136 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
-import { addRowToSheet, getSheetData } from '../api/googleSheetsApi';
+import React, { useState } from 'react';
+import { Modal, Button, Form } from 'react-bootstrap';
+import { addRowToSheet } from '../api/googleSheetsApi';
 
-const CATEGORIES = [
-  { value: 'THEORY', label: 'Theory' },
-  { value: 'REPORTING', label: 'Reporting' }
-];
-
-const SOURCE_TYPES = [
-  { value: 'post', label: 'Social Media Post' },
-  { value: 'article', label: 'Article' },
-  { value: 'book', label: 'Book' },
-  { value: 'pdf', label: 'PDF' }
-];
-
-const POST_PLATFORMS = [
-  { value: 'IG', label: 'Instagram' },
-  { value: 'FB', label: 'Facebook' },
-  { value: 'X', label: 'Twitter/X' },
-  { value: 'YT', label: 'YouTube' }
-];
-
-const SPECTRUM_OPTIONS = [
-  { value: 'LEFT', label: 'Left' },
-  { value: 'CENTRE', label: 'Centre' },
-  { value: 'RIGHT', label: 'Right' }
-];
-
-const EntryForm = ({ show, onHide, onSubmit, sheetType = '', initialData = {} }) => {
+const EntryForm = ({ show, onHide, onSubmit, sheetType = 'theory', initialData = {}, children }) => {
   const [formData, setFormData] = useState({
-    CATEGORY: 'THEORY',
-    KEYWORDS: '',
-    SRC_TYPE: 'article',
-    POST: '',
-    POST_CONTENT: '',
+    CATEGORY: 'theory',
+    SOURCE_TYPE: '',
     HEADLINE: '',
-    DOMAIN: '',
-    HIGHLIGHTS: '',
+    POST_CONTENT: '',
+    EXCERPTS: '',
+    AUTHOR: '',
+    KEYWORDS: '',
     WHO: '',
     WHO_TYPE: '',
-    SPECTRUM: '',
-    DATE_PUBLISHED: new Date().toISOString().split('T')[0],
-    REGION: '',
     URL: '',
-    ...initialData
+    DOMAIN: '',
+    DATE_PUBLISHED: new Date().toISOString().split('T')[0],
+    SPECTRUM: '',
+    ABSTRACT: '',
+    REGION: '',
+    PLATFORM: ''
   });
-
-  const [dropdownOptions, setDropdownOptions] = useState({
-    WHO: [],
-    WHO_TYPE: [],
-    KEYWORDS: [],
-    DOMAIN: []
-  });
-
-  useEffect(() => {
-    // Fetch dropdown options from existing data
-    const fetchDropdownOptions = async () => {
-      try {
-        const [theoryData, reportingData, whoData] = await Promise.all([
-          getSheetData('theory'),
-          getSheetData('reporting'),
-          getSheetData('WHO')
-        ]);
-        
-        // Extract unique values for dropdowns
-        const uniqueWho = [...new Set([
-          ...theoryData.map(item => item.WHO),
-          ...reportingData.map(item => item.WHO)
-        ])].filter(Boolean);
-        
-        const uniqueWhoTypes = [...new Set([
-          ...theoryData.map(item => item.WHO_TYPE),
-          ...reportingData.map(item => item.WHO_TYPE),
-          ...whoData.map(item => item.WHO_TYPE)
-        ])].filter(Boolean);
-
-        const uniqueKeywords = [...new Set(
-          theoryData.map(item => item.KEYWORDS)
-        )].filter(Boolean);
-
-        const uniqueDomains = [...new Set([
-          ...theoryData.map(item => item.DOMAIN),
-          ...reportingData.map(item => item.DOMAIN)
-        ])].filter(Boolean);
-        
-        setDropdownOptions({
-          WHO: uniqueWho,
-          WHO_TYPE: uniqueWhoTypes,
-          KEYWORDS: uniqueKeywords,
-          DOMAIN: uniqueDomains
-        });
-      } catch (error) {
-        console.error('Error fetching dropdown options:', error);
-      }
-    };
-    
-    if (show) {
-      fetchDropdownOptions();
-    }
-  }, [show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Determine target sheet from formData or prop
-      const targetSheet = sheetType || formData.CATEGORY.toLowerCase();
-      
-      // Transform data if needed
-      const dataToSubmit = { ...formData };
-      
-      // Save to the selected sheet
-      await addRowToSheet(targetSheet, dataToSubmit);
+      // Save to the selected sheet based on category
+      await addRowToSheet(formData.CATEGORY, formData);
       onSubmit();
       onHide();
-      
-      // Reset form to initial state, preserving any initialData
+      // Reset form
       setFormData({
-        CATEGORY: 'THEORY',
-        KEYWORDS: '',
-        SRC_TYPE: 'article',
-        POST: '',
-        POST_CONTENT: '',
+        CATEGORY: 'theory',
+        SOURCE_TYPE: '',
         HEADLINE: '',
-        DOMAIN: '',
-        HIGHLIGHTS: '',
+        POST_CONTENT: '',
+        EXCERPTS: '',
+        AUTHOR: '',
+        KEYWORDS: '',
         WHO: '',
         WHO_TYPE: '',
-        SPECTRUM: '',
-        DATE_PUBLISHED: new Date().toISOString().split('T')[0],
-        REGION: '',
         URL: '',
-        ...initialData
+        DOMAIN: '',
+        DATE_PUBLISHED: new Date().toISOString().split('T')[0],
+        SPECTRUM: '',
+        ABSTRACT: '',
+        REGION: '',
+        PLATFORM: ''
       });
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -140,235 +56,336 @@ const EntryForm = ({ show, onHide, onSubmit, sheetType = '', initialData = {} })
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
   };
 
-  // Theory specific fields based on source type
+  const handleMultiSelectChange = (name, value) => {
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value.split(',').map(item => item.trim())
+    }));
+  };
+
   const renderTheoryFields = () => (
     <>
       <Form.Group className="mb-3">
-        <Form.Label>Keywords</Form.Label>
+        <Form.Label>Category*</Form.Label>
         <Form.Select
-          name="KEYWORDS"
-          value={formData.KEYWORDS}
+          name="CATEGORY"
+          value={formData.CATEGORY}
           onChange={handleChange}
+          required
         >
-          <option value="">Select or type new</option>
-          {dropdownOptions.KEYWORDS.map((keyword, index) => (
-            <option key={index} value={keyword}>
-              {keyword}
-            </option>
-          ))}
+          <option value="theory">Theory</option>
+          <option value="reporting">Reporting</option>
         </Form.Select>
       </Form.Group>
 
       <Form.Group className="mb-3">
         <Form.Label>Source Type*</Form.Label>
+        <select className="form-select" aria-label="Source Type" name="SOURCE_TYPE" value={formData.SOURCE_TYPE} onChange={handleChange} required>
+          <option value="social media post">Social Media Post</option>
+          <option value="article">Article</option>
+          <option value="book">Book</option>
+          <option value="pdf">PDF</option>
+        </select>
+      </Form.Group>
+
+      {formData.SOURCE_TYPE === 'social media post' ? (
+        <Form.Group className="mb-3">
+          <Form.Label>Post Content*</Form.Label>
+          <Form.Control
+            type="text"
+            name="POST_CONTENT"
+            value={formData.POST_CONTENT}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      ) : (
+        <Form.Group className="mb-3">
+          <Form.Label>Headline (title)*</Form.Label>
+          <Form.Control
+            type="text"
+            name="HEADLINE"
+            value={formData.HEADLINE}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {formData.SOURCE_TYPE === 'social media post' && (
+        <Form.Group className="mb-3">
+          <Form.Label>Platform*</Form.Label>
+          <Form.Select
+            name="PLATFORM"
+            value={formData.PLATFORM}
+            onChange={handleChange}
+            required
+          >
+            <option value="FB">Facebook</option>
+            <option value="IG">Instagram</option>
+            <option value="X">Twitter</option>
+            <option value="YT">YouTube</option>
+          </Form.Select>
+        </Form.Group>
+      )}
+
+      <Form.Group className="mb-3">
+        <Form.Label>AUTHOR*</Form.Label>
+        <Form.Control
+          type="text"
+          name="AUTHOR"
+          value={formData.AUTHOR}
+          onChange={handleChange}
+          required
+        />
+      </Form.Group>
+
+      {(formData.SOURCE_TYPE === 'article') && (
+        <Form.Group className="mb-3">
+          <Form.Label>Domain*</Form.Label>
+          <Form.Control
+            type="text"
+            name="DOMAIN"
+            value={formData.DOMAIN}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.SOURCE_TYPE === 'article' || formData.SOURCE_TYPE === 'book' || formData.SOURCE_TYPE === 'pdf') && (
+        <Form.Group className="mb-3">
+          <Form.Label>Abstract*</Form.Label>
+          <Form.Control
+            type="text"
+            name="ABSTRACT"
+            value={formData.ABSTRACT}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.SOURCE_TYPE === 'social media post' && formData.CATEGORY === 'theory') && (
+        <Form.Group className="mb-3">
+          <Form.Label>URL*</Form.Label>
+          <Form.Control
+            type="url"
+            name="URL"
+            value={formData.URL}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.CATEGORY === 'theory' && formData.SOURCE_TYPE === 'post') && (
+        <Form.Group className="mb-3">
+          <Form.Label>URL*</Form.Label>
+          <Form.Control
+            type="url"
+            name="URL"
+            value={formData.URL}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.CATEGORY === 'theory' && (formData.SOURCE_TYPE === 'book' || formData.SOURCE_TYPE === 'pdf')) && (
+        <Form.Group className="mb-3">
+          <Form.Label>URL*</Form.Label>
+          <Form.Control
+            type="url"
+            name="URL"
+            value={formData.URL}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.CATEGORY === 'theory' && formData.SOURCE_TYPE === 'article') && (
+        <Form.Group className="mb-3">
+          <Form.Label>URL*</Form.Label>
+          <Form.Control
+            type="url"
+            name="URL"
+            value={formData.URL}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      {(formData.CATEGORY === 'reporting') && (
+        <Form.Group className="mb-3">
+          <Form.Label>URL*</Form.Label>
+          <Form.Control
+            type="url"
+            name="URL"
+            value={formData.URL}
+            onChange={handleChange}
+            required
+          />
+        </Form.Group>
+      )}
+
+      <Form.Group className="mb-3">
+        <Form.Label>WHO*</Form.Label>
+        <Form.Control
+          type="text"
+          name="WHO"
+          value={formData.WHO}
+          onChange={(e) => handleMultiSelectChange('WHO', e.target.value)}
+          required
+          placeholder="Type names separated by commas"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>WHO_TYPE*</Form.Label>
         <Form.Select
-          name="SRC_TYPE"
-          value={formData.SRC_TYPE}
+          name="WHO_TYPE"
+          value={formData.WHO_TYPE}
           onChange={handleChange}
           required
         >
-          {SOURCE_TYPES.map(type => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
+          <option value="character">Character</option>
+          <option value="party">Party</option>
+          <option value="movement">Movement</option>
         </Form.Select>
       </Form.Group>
 
-      {formData.SRC_TYPE === 'post' && (
-        <>
-          <Form.Group className="mb-3">
-            <Form.Label>Platform*</Form.Label>
-            <Form.Select
-              name="POST"
-              value={formData.POST}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Platform</option>
-              {POST_PLATFORMS.map(platform => (
-                <option key={platform.value} value={platform.value}>
-                  {platform.label}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>SPECTRUM*</Form.Label>
+        <Form.Select
+          name="SPECTRUM"
+          value={formData.SPECTRUM}
+          onChange={handleChange}
+          required
+        >
+          <option value="LEFT">LEFT</option>
+          <option value="CENTRE">CENTRE</option>
+          <option value="RIGHT">RIGHT</option>
+        </Form.Select>
+      </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Post Content*</Form.Label>
-            <Form.Control
-              as="textarea"
-              name="POST_CONTENT"
-              value={formData.POST_CONTENT}
-              onChange={handleChange}
-              rows={3}
-              required
-            />
-          </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>Keywords*</Form.Label>
+        <Form.Control
+          type="text"
+          name="KEYWORDS"
+          value={formData.KEYWORDS}
+          onChange={(e) => handleMultiSelectChange('KEYWORDS', e.target.value)}
+          required
+          placeholder="Type keywords separated by commas"
+        />
+      </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Author</Form.Label>
-            <Form.Control
-              type="text"
-              name="AUTHOR"
-              value={formData.AUTHOR}
-              onChange={handleChange}
-            />
-          </Form.Group>
-        </>
-      )}
+      <Form.Group className="mb-3">
+        <Form.Label>Date Published</Form.Label>
+        <Form.Control
+          type="date"
+          name="DATE_PUBLISHED"
+          value={formData.DATE_PUBLISHED}
+          onChange={handleChange}
+        />
+      </Form.Group>
 
-      {formData.SRC_TYPE === 'article' && (
-        <>
-          <Form.Group className="mb-3">
-            <Form.Label>Headline*</Form.Label>
-            <Form.Control
-              type="text"
-              name="HEADLINE"
-              value={formData.HEADLINE}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Domain</Form.Label>
-            <Form.Select
-              name="DOMAIN"
-              value={formData.DOMAIN}
-              onChange={handleChange}
-            >
-              <option value="">Select or type new</option>
-              {dropdownOptions.DOMAIN.map((domain, index) => (
-                <option key={index} value={domain}>
-                  {domain}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Highlights/Excerpts</Form.Label>
-            <Form.Control
-              as="textarea"
-              name="HIGHLIGHTS"
-              value={formData.HIGHLIGHTS}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Highlighted text from the article"
-            />
-          </Form.Group>
-        </>
-      )}
+      <Form.Group className="mb-3">
+        <Form.Label>Excerpts</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={3}
+          name="EXCERPTS"
+          value={formData.EXCERPTS}
+          onChange={handleChange}
+        />
+      </Form.Group>
     </>
   );
 
-  // Reporting specific fields based on source type
   const renderReportingFields = () => (
     <>
       <Form.Group className="mb-3">
-        <Form.Label>Headline*</Form.Label>
+        <Form.Label>Category*</Form.Label>
+        <Form.Select
+          name="CATEGORY"
+          value={formData.CATEGORY}
+          onChange={handleChange}
+          required
+        >
+          <option value="theory">Theory</option>
+          <option value="reporting">Reporting</option>
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Source Type*</Form.Label>
+        <select className="form-select" aria-label="Source Type" name="SOURCE_TYPE" value={formData.SOURCE_TYPE} onChange={handleChange} required>
+          <option value="social media post">Social Media Post</option>
+          <option value="article">Article</option>
+        </select>
+      </Form.Group>
+
+      {formData.SOURCE_TYPE === 'social media post' && (
+        <Form.Group className="mb-3">
+          <Form.Label>Platform*</Form.Label>
+          <Form.Select
+            name="PLATFORM"
+            value={formData.PLATFORM}
+            onChange={handleChange}
+            required
+          >
+            <option value="FB">Facebook</option>
+            <option value="IG">Instagram</option>
+            <option value="X">Twitter</option>
+            <option value="YT">YouTube</option>
+          </Form.Select>
+        </Form.Group>
+      )}
+
+      <Form.Group className="mb-3">
+        <Form.Label>Headlines*</Form.Label>
         <Form.Control
           type="text"
-          name="HEADLINE"
-          value={formData.HEADLINE}
+          name="POST_CONTENT"
+          value={formData.POST_CONTENT}
           onChange={handleChange}
           required
         />
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Region*</Form.Label>
+        <Form.Label>Region</Form.Label>
         <Form.Control
           type="text"
           name="REGION"
           value={formData.REGION}
           onChange={handleChange}
-          required
         />
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Source Type*</Form.Label>
+        <Form.Label>Spectrum*</Form.Label>
         <Form.Select
-          name="SRC_TYPE"
-          value={formData.SRC_TYPE}
+          name="SPECTRUM"
+          value={formData.SPECTRUM}
           onChange={handleChange}
           required
         >
-          {SOURCE_TYPES.map(type => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
+          <option value="LEFT">LEFT</option>
+          <option value="CENTRE">CENTRE</option>
+          <option value="RIGHT">RIGHT</option>
         </Form.Select>
       </Form.Group>
-
-      {formData.SRC_TYPE === 'post' && (
-        <>
-          <Form.Group className="mb-3">
-            <Form.Label>Platform*</Form.Label>
-            <Form.Select
-              name="POST"
-              value={formData.POST}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Platform</option>
-              {POST_PLATFORMS.map(platform => (
-                <option key={platform.value} value={platform.value}>
-                  {platform.label}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Author</Form.Label>
-            <Form.Control
-              type="text"
-              name="AUTHOR"
-              value={formData.AUTHOR}
-              onChange={handleChange}
-            />
-          </Form.Group>
-        </>
-      )}
-
-      {formData.SRC_TYPE === 'article' && (
-        <>
-          <Form.Group className="mb-3">
-            <Form.Label>Domain</Form.Label>
-            <Form.Select
-              name="DOMAIN"
-              value={formData.DOMAIN}
-              onChange={handleChange}
-            >
-              <option value="">Select or type new</option>
-              {dropdownOptions.DOMAIN.map((domain, index) => (
-                <option key={index} value={domain}>
-                  {domain}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Highlights</Form.Label>
-            <Form.Control
-              as="textarea"
-              name="HIGHLIGHTS"
-              value={formData.HIGHLIGHTS}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Highlighted text from the article"
-            />
-          </Form.Group>
-        </>
-      )}
 
       <Form.Group className="mb-3">
         <Form.Label>URL*</Form.Label>
@@ -380,154 +397,67 @@ const EntryForm = ({ show, onHide, onSubmit, sheetType = '', initialData = {} })
           required
         />
       </Form.Group>
-    </>
-  );
 
-  // Render CARDS form if specified by sheetType
-  const renderCardsForm = () => (
-    <>
       <Form.Group className="mb-3">
-        <Form.Label>Entity Name (WHO)*</Form.Label>
-        <Form.Select
-          name="WHO"
-          value={formData.WHO}
+        <Form.Label>Author*</Form.Label>
+        <Form.Control
+          type="text"
+          name="AUTHOR"
+          value={formData.AUTHOR}
           onChange={handleChange}
           required
-        >
-          <option value="">Select or type new</option>
-          {dropdownOptions.WHO.map((who, index) => (
-            <option key={index} value={who}>
-              {who}
-            </option>
-          ))}
-        </Form.Select>
+        />
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Entity Type*</Form.Label>
+        <Form.Label>WHO*</Form.Label>
+        <Form.Control
+          type="text"
+          name="WHO"
+          value={formData.WHO}
+          onChange={(e) => handleMultiSelectChange('WHO', e.target.value)}
+          required
+          placeholder="Type names separated by commas"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>WHO_TYPE*</Form.Label>
         <Form.Select
           name="WHO_TYPE"
           value={formData.WHO_TYPE}
           onChange={handleChange}
           required
         >
-          <option value="">Select Type</option>
-          <option value="Character">Character</option>
-          <option value="Political Party">Political Party</option>
-          <option value="Movement">Movement</option>
+          <option value="character">Character</option>
+          <option value="party">Party</option>
+          <option value="movement">Movement</option>
         </Form.Select>
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>Spectrum*</Form.Label>
-        <Form.Select
-          name="SPECTRUM"
-          value={formData.SPECTRUM}
+        <Form.Label>Date Published</Form.Label>
+        <Form.Control
+          type="date"
+          name="DATE_PUBLISHED"
+          value={formData.DATE_PUBLISHED}
           onChange={handleChange}
-          required
-        >
-          <option value="">Select Spectrum</option>
-          {SPECTRUM_OPTIONS.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Form.Select>
+        />
       </Form.Group>
     </>
   );
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          {sheetType === 'CARDS' ? 'Add New Entity Card' : 'Add New Entry'}
-        </Modal.Title>
-      </Modal.Header>
       <Form onSubmit={handleSubmit}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Entry</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
-          {sheetType === 'CARDS' ? (
-            renderCardsForm()
+          {children ? (
+            children
           ) : (
-            <>
-              <Form.Group className="mb-3">
-                <Form.Label>Category*</Form.Label>
-                <Form.Select
-                  name="CATEGORY"
-                  value={formData.CATEGORY}
-                  onChange={handleChange}
-                  required
-                >
-                  {CATEGORIES.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-
-              {formData.CATEGORY === 'THEORY' ? renderTheoryFields() : renderReportingFields()}
-
-              {/* Common fields for both categories */}
-              <Form.Group className="mb-3">
-                <Form.Label>WHO</Form.Label>
-                <Form.Select
-                  name="WHO"
-                  value={formData.WHO}
-                  onChange={handleChange}
-                >
-                  <option value="">Select or type new</option>
-                  {dropdownOptions.WHO.map((who, index) => (
-                    <option key={index} value={who}>
-                      {who}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>WHO Type</Form.Label>
-                <Form.Select
-                  name="WHO_TYPE"
-                  value={formData.WHO_TYPE}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Type</option>
-                  <option value="Pokémon">Pokémon</option>
-                  <option value="Trainer">Trainer</option>
-                  <option value="Item">Item</option>
-                  <option value="Character">Character</option>
-                  <option value="Political Party">Political Party</option>
-                  <option value="Movement">Movement</option>
-                </Form.Select>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Spectrum</Form.Label>
-                <Form.Select
-                  name="SPECTRUM"
-                  value={formData.SPECTRUM}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Spectrum</option>
-                  {SPECTRUM_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Date Published</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="DATE_PUBLISHED"
-                  value={formData.DATE_PUBLISHED}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-            </>
+            formData.CATEGORY === 'theory' ? renderTheoryFields() : renderReportingFields()
           )}
         </Modal.Body>
         <Modal.Footer>

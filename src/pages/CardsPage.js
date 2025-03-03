@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Tabs, Tab, Button, Spinner, Table } from 'react-bootstrap';
+import { Container, Row, Col, Tabs, Tab, Button, Spinner, Table, Form } from 'react-bootstrap';
 import CardView from '../components/CardView';
 import EntryForm from '../components/EntryForm';
 import SearchBar from '../components/SearchBar';
-import { getSheetData } from '../api/googleSheetsApi';
+import { getSheetData, addRowToSheet } from '../api/googleSheetsApi';
+import Select from 'react-select';
 
 const CardsPage = () => {
   const [cards, setCards] = useState([]);
@@ -13,6 +14,10 @@ const CardsPage = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [formData, setFormData] = useState({ WHO: [], WHO_TYPE: '', SPECTRUM: '' });
+  const [whoOptions, setWhoOptions] = useState([]);
+  const [whoTypeOptions, setWhoTypeOptions] = useState([]);
+  const [spectrumOptions, setSpectrumOptions] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -34,6 +39,9 @@ const CardsPage = () => {
         reporting: reportingData,
         who: whoData
       });
+      setWhoOptions(whoData.map(item => ({ value: item.WHO, label: item.WHO })));
+      setWhoTypeOptions([...new Set(cardsData.map(item => item.WHO_TYPE))].map(item => ({ value: item, label: item })));
+      setSpectrumOptions([...new Set(cardsData.map(item => item.SPECTRUM))].map(item => ({ value: item, label: item })));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -65,9 +73,22 @@ const CardsPage = () => {
     return related;
   };
 
-  const handleFormSubmit = () => {
-    setShowForm(false);
-    fetchData();
+  const handleFormSubmit = async () => {
+    try {
+      await addRowToSheet('CARDS', formData);
+      setShowForm(false);
+      fetchData();
+    } catch (error) {
+      console.error('Error submitting to CARDS sheet:', error);
+    }
+  };
+
+  const handleChange = (event) => {
+    if (event.target.name === 'WHO') {
+      setFormData({ ...formData, WHO: event.map(item => item.value) });
+    } else {
+      setFormData({ ...formData, [event.target.name]: event.target.value });
+    }
   };
 
   const renderTableView = (dataSource) => {
@@ -198,14 +219,51 @@ const CardsPage = () => {
           </Tabs>
         </>
       )}
+
+      {showForm && (
+        <EntryForm
+          show={showForm}
+          onHide={() => setShowForm(false)}
+          onSubmit={handleFormSubmit}
+          initialData={formData}
+        >
+          <Form.Group className="mb-3">
+            <Form.Label>WHO*</Form.Label>
+            <Select
+              isMulti
+              name="WHO"
+              value={whoOptions.filter(option => formData.WHO.includes(option.value))}
+              onChange={handleChange}
+              options={whoOptions}
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>WHO_TYPE*</Form.Label>
+            <Select
+              name="WHO_TYPE"
+              value={whoTypeOptions.find(option => option.value === formData.WHO_TYPE)}
+              onChange={handleChange}
+              options={whoTypeOptions}
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>SPECTRUM*</Form.Label>
+            <Select
+              name="SPECTRUM"
+              value={spectrumOptions.find(option => option.value === formData.SPECTRUM)}
+              onChange={handleChange}
+              options={spectrumOptions}
+              required
+            />
+          </Form.Group>
+        </EntryForm>
+      )}
       
-      <EntryForm 
-        show={showForm} 
-        onHide={() => setShowForm(false)}
-        onSubmit={handleFormSubmit}
-        sheetType="CARDS"
-        initialData={{ WHO_TYPE: activeTab }}
-      />
+      {renderCardContent(activeTab)}
     </Container>
   );
   
@@ -229,7 +287,7 @@ const CardsPage = () => {
     return (
       <Row>
         {tabCards.map((card, index) => (
-          <Col key={index} xs={12} md={6} lg={4} xl={3} className="mb-4">
+          <Col xs={12} sm={6} md={4} lg={3} key={index}>
             <CardView 
               card={card} 
               relatedArticles={getRelatedArticles(card.WHO)}

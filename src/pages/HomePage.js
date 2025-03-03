@@ -99,8 +99,16 @@ const HomePage = () => {
           <Button 
             variant="primary" 
             onClick={() => setShowForm(true)}
-            className="rounded-circle"
+            className="rounded-circle d-none d-md-block"
             style={{ position: 'fixed', bottom: '20px', right: '20px', width: '50px', height: '50px', fontSize: '24px' }}
+          >
+            +
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={() => setShowForm(true)}
+            className="rounded-circle d-block d-md-none"
+            style={{ position: 'fixed', bottom: '20px', right: '20px', width: '40px', height: '40px', fontSize: '18px' }}
           >
             +
           </Button>
